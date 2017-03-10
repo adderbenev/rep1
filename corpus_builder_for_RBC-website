@@ -1,0 +1,120 @@
+import urllib.request
+import re
+import os
+from bs4 import BeautifulSoup
+from urllib.error import HTTPError
+from pymystem3 import Mystem
+import nltk
+import string
+ 
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT x.y; WOW64; rv:10.0) Gecko/20100101 Firefox/10.0'}
+ 
+dates_we_need = ["июл 2015", "авг 2015", "сен 2015", "окт 2015", "ноя 2015", "дек 2015", "янв 2016", "фев 2016",
+                 "мар 2016", "апр 2016", "мая 2016", "июн 2016", "июл 2016", "авг 2016", "сен 2016", "окт 2016",
+                 "ноя 2016", "дек 2016"]
+ 
+folders_prefix = 'C:/Corpus/RBC/'
+ 
+date_tag = re.compile("(?:date\"\>[\d]{1,2}[' '])(.{8})")
+cleanup = re.compile("(<.*?>)|(К сожалению\,.*\n.*не поддерживает.*\n.*потоковое видео\.)", re.M)
+author = re.compile('(?:-->)([А-Яа-я].*)(?:<!--)', re.M)
+file_code = re.compile('(?:.*(rbc).*(\/))(.*)')
+href_reg = re.compile("http(.{1,10})rbc.ru")
+ 
+ 
+def mystem_proc (text, path):
+    lemma = mystem.lemmatize(text)
+    lem_text = ''.join(lemma)
+    analyzed_t = mystem.analyze(text)
+ 
+    mystem_file = open(path + '_mystem.txt', 'w', encoding="utf-8")
+    mystem_file.write(lem_text + '\n\n' + str(analyzed_t))
+    mystem_file.close()
+ 
+ 
+def god_save_us_all(clean_text, title, date):
+    path = folders_prefix + str(date)[4:12]
+    if not os.path.exists(path):
+        os.makedirs(path)
+ 
+    f = open(path + "/" + title + ".txt", "w", encoding="utf-8")
+    f.write(clean_text)
+    f.close()
+ 
+    copy_path = str(path + "/" + title)
+    mystem_proc(text=clean_text, path=copy_path)
+ 
+ 
+def get_texts(soup):
+    actual_text = soup.find_all('p')
+    clean_text = re.sub(cleanup, '', str(actual_text))
+ 
+    tokens = nltk.word_tokenize(clean_text)
+    words = [i for i in tokens if i not in string.punctuation]
+ 
+    wordcount = len(words)
+    author_name = re.findall(author, soup.text)
+    if author_name:
+        meta_file.write('Author: ' + str(author_name) + '| ')
+    else:
+        meta_file.write('Author: unidentified poor freelancer | ')
+    headline_rough = soup.find_all('title')
+    headline_proper = re.sub(cleanup, '', str(headline_rough))
+    meta_file.write('Sourse: RBC | ' + 'Headline: ' + headline_proper + ' | Words in article: ' + str(wordcount) + '\n')
+    return clean_text
+ 
+ 
+def check_date(pagecode):
+    try:
+        pagedcd = pagecode.decode(encoding='UTF-8', errors='strict')
+    except UnicodeDecodeError:
+        return None
+    t = re.findall(date_tag, pagedcd)
+    if not len(set(t) & set(dates_we_need)):
+        return None
+    else:
+        meta_file.write(str(set(t) & set(dates_we_need)))
+        date = str(set(t) & set(dates_we_need))
+        return date
+ 
+ 
+def get_links(url):
+    print(url)
+    try:
+        page = urllib.request.urlopen(url)
+        pagecode = page.read()
+        page.close()
+    except HTTPError:
+        print("HTTPError occurred")
+        return
+ 
+    try:
+        file_name = file_code.search(url).group(3)
+        if file_name == '':
+            pass
+    except AttributeError:
+        return
+ 
+    soup = BeautifulSoup(markup=pagecode)
+    pub_date = check_date(pagecode)
+ 
+    if pub_date is not None:
+        print('date approved for url: ' + url)
+        meta_file.write(' | ' + url)
+        articles = get_texts(soup)
+        god_save_us_all(clean_text=articles, title=file_name, date=pub_date)
+ 
+    for a in soup.find_all('a', href=href_reg):
+        ref = a.get('href')
+        if ref not in history_links:
+            history_links.append(ref)
+            get_links(ref)
+ 
+ 
+if __name__ == "__main__":
+    mystem = Mystem()
+    history_links = []
+    start_url = 'http://www.rbc.ru/politics/08/05/2016/572fa06d9a79478a567515be'
+    meta_file = open('C:/news_corpus/meta.txt', 'a')
+    history_links.append(start_url)
+    get_links(start_url)
