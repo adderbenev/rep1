@@ -33,7 +33,7 @@ def mystem_proc (text, path):
  
  
 def god_save_us_all(clean_text, title, date):
-    path = folders_prefix + str(date)[4:12]
+    path = folders_prefix + str(date)[2:10]
     if not os.path.exists(path):
         os.makedirs(path)
  
