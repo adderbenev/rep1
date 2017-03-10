@@ -20,6 +20,7 @@ cleanup = re.compile("(<.*?>)|(К сожалению\,.*\n.*не поддерж�
 author = re.compile('(?:-->)([А-Яа-я].*)(?:<!--)', re.M)
 file_code = re.compile('(?:.*(rbc).*(\/))(.*)')
 href_reg = re.compile("http(.{1,10})rbc.ru")
+file_name_cleanup = re.compile('([\!\?\\\/\:\,\>\<\;\$\#\@\^\,\.\*\|])')
  
  
 def mystem_proc (text, path):
@@ -36,12 +37,12 @@ def god_save_us_all(clean_text, title, date):
     path = folders_prefix + str(date)[2:10]
     if not os.path.exists(path):
         os.makedirs(path)
- 
-    f = open(path + "/" + title + ".txt", "w", encoding="utf-8")
+    title1 = re.sub(file_name_cleanup, '', title) 
+    f = open(path + "/" + title1 + ".txt", "w", encoding="utf-8")
     f.write(clean_text)
     f.close()
  
-    copy_path = str(path + "/" + title)
+    copy_path = str(path + "/" + title1)
     mystem_proc(text=clean_text, path=copy_path)
  
  
