@@ -1,0 +1,112 @@
+import re
+
+find_hitt = re.compile('(?:<i>|<i>\n|<i>[ḪÚÙÍÌŠšúùéèáàḫ])(.?[a-z].*?)(?:\n<|<|[ḪÚÙÍÌŠšúùéèáàḫ]<)', re.S)
+
+latin_numbers = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii']
+trans_input = "úùéèáàíìsh"
+trans_output = "uueeaaiišḫ"
+trans_tab = str.maketrans(trans_input, trans_output)
+cleaner = "!@#$*.,&?\\|/[]{}"
+dictrans = {}
+filename = 'syllab.html'
+
+
+def hitt_trans (words):
+# убрать диакритики, заменить согласные
+    translit = words.translate(trans_tab)
+# заменить одиночные гласные в середине
+    translit1 = translit
+    for item in re.findall('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])a-a-[^a]', translit):
+        if item is not []:
+            s = item.replace('a-a-', 'ā')
+            translit1 = re.sub('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])a-a-[^a]', s, translit1)
+
+    translit2 = translit1
+    for item in re.findall('[^a](-a-a)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', translit1):
+        if item is not []:
+            s = item.replace('-a-a', 'ā')
+            translit2 = re.sub('[^a](-a-a)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', s, translit1)
+
+    translit3 = translit2
+    for item in re.findall('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])e-e-[^e]', translit2):
+        if item is not []:
+            s = item.replace('e-e-', 'ē')
+            translit3 = re.sub('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])e-e-[^e]', s, translit2)
+
+    translit4 = translit3
+    for item in re.findall('[^e](-e-e)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', translit3):
+        if item is not []:
+            s = item.replace('-e-e', 'ē')
+            translit4 = re.sub('[^e](-e-e)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', s, translit3)
+
+    translit5 = translit4
+    for item in re.findall('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])i-i-[^i]', translit4):
+        if item is not []:
+            s = item.replace('i-i-', 'ī')
+            translit5 = re.sub('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])i-i-[^i]', s, translit4)
+
+    translit6 = translit5
+    for item in re.findall('[^i](-i-i)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', translit5):
+        if item is not []:
+            s = item.replace('-i-i', 'ū')
+            translit6 = re.sub('[^i](-i-i)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', s, translit5)
+
+    translit7 = translit6
+    for item in re.findall('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])u-u-[^u]', translit6):
+        if item is not []:
+            s = item.replace('u-u-', 'ū')
+            translit7 = re.sub('(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])u-u-[^u]', s, translit6)
+
+    translit8 = translit7
+    for item in re.findall('[^u](-u-u)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', translit7):
+        if item is not []:
+            s = item.replace('-u-u', 'ū')
+            translit8 = re.sub('[^u](-u-u)(?:\w|[ḪÚÙÍÌŠšúùéèáàḫ])', s, translit7)
+# убрать дефисы
+    translit9 = re.sub('-', '', translit8)
+# transition i -> y
+    translit10 = translit9
+    for item in re.findall("[i|a|e|u]i[i|a|e|u]", translit9):
+        if item is not []:
+            subst = re.sub('i', 'y', item)
+            subst1 = re.sub('yy$', 'yi', subst)
+            subst2 = re.sub('^yy', 'iy', subst1)
+            translit10 = re.sub("[i|a|e|u]i[i|a|e|u]", subst2, translit9)
+        else:
+            continue
+
+# заменить тройные гласные
+    translit11 = re.sub('[a]{3}', 'ā', translit10)
+    translit12 = re.sub('[e]{3}', 'ē', translit11)
+    translit13 = re.sub('[u]{3}', 'ū', translit12)
+    translit14 = re.sub('[i]{3}', 'ī', translit13)
+# заменить удвоенные гласные в начале и конце слова
+    translit15 = re.sub('(?:\b|^| )([a]{2})|([a]{2})(?:\b|$| )', 'ā', translit14)
+    translit16 = re.sub('(?:\b|^| )([e]{2})|([e]{2})(?:\b|$| )', 'ē', translit15)
+    translit17 = re.sub('(?:\b|^| )([u]{2})|([u]{2})(?:\b|$| )', 'ū', translit16)
+    translit18 = re.sub('(?:\b|^| )([i]{2})|([i]{2})(?:\b|$| )', 'ī', translit17)
+# сократить оставшиеся удвоенные гласные
+    translit19 = re.sub('aa', 'a', translit18)
+    translit20 = re.sub('uu', 'u', translit19)
+    translit21 = re.sub('ee', 'e', translit20)
+    translit22 = re.sub('ii', 'i', translit21)
+#    print (translit, translit4, translit5, translit6, translit10, translit14, translit18)
+    return translit22
+
+if __name__ == "__main__":
+    file = open("C:/f1/syllab1.html", encoding='utf-8')
+    page_layout = file.read()
+    file.close()
+    page = re.sub('[˺|˹|˻|˼|\[|\]|\*]', '', page_layout)
+    page1 = re.sub('<a class="sdendnoteanc" name="sdendnote3anc" href="#sdendnote3sym">', '', page)
+    for item in re.findall(find_hitt, page1):
+        if item not in latin_numbers:
+            a = hitt_trans(words=item)
+            dictrans[item] = a
+    dictrans['s'] = 's'
+    pattern = re.compile('|'.join(dictrans.keys()))
+    result = pattern.sub(lambda x: dictrans[x.group()], page1)
+    with open(filename[:-5] + '_1changed.html', 'w', encoding='utf-8') as final:
+        final.write(result)
+        final.close()
+
